@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Smart Medicine Dispenser — Nurse Dashboard for real-time patient adherence tracking and automated medicine scheduling." />
+  <meta name="theme-color" content="#06b6d4" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MediSync" />
+  <title>MediSync — Smart Dispenser Dashboard</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── HEADER ────────────────────────────────────────────── -->
+  <header class="header" role="banner">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect x="2" y="10" width="24" height="16" rx="3" fill="url(#g1)" />
+            <rect x="8" y="2" width="12" height="10" rx="2" fill="url(#g2)" />
+            <circle cx="14" cy="18" r="3" fill="white" opacity="0.9"/>
+            <rect x="12.5" y="15.5" width="3" height="5" rx="1" fill="url(#g1)"/>
+            <rect x="11.5" y="17" width="5" height="2" rx="1" fill="url(#g1)"/>
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#06b6d4"/>
+                <stop offset="100%" stop-color="#3b82f6"/>
+              </linearGradient>
+              <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#8b5cf6"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-name">MediSync</h1>
+          <p class="brand-sub">Smart Dispenser Dashboard</p>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="live-badge" id="liveBadge" aria-live="polite">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          <span id="liveStatus">LIVE</span>
+        </div>
+
+        <!-- Enable Notifications pill -->
+        <button id="notifEnableBtn" class="btn-enable-notif" title="Enable home screen notifications" aria-label="Enable notifications">
+          🔔 Enable Alerts
+        </button>
+
+        <!-- Notification Bell -->
+        <div class="notif-bell-wrapper">
+          <button id="bellBtn" class="bell-btn" aria-label="Notifications" aria-haspopup="true">
+            <span class="bell-icon" aria-hidden="true">🔔</span>
+            <span id="bellBadge" class="bell-badge hidden">0</span>
+          </button>
+          <div id="notifDropdown" class="notif-dropdown hidden" role="dialog" aria-label="Missed dose alerts">
+            <div class="notif-dropdown-header">
+              <span class="notif-dropdown-title">🚨 Missed Dose Alerts</span>
+              <button class="notif-clear-btn" onclick="clearBell()" aria-label="Mark all read">Mark read</button>
+            </div>
+            <div id="notifList" class="notif-list">
+              <div class="notif-empty">No missed dose alerts yet.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="clock-block">
+          <div class="clock-time" id="clock" aria-label="Current time">--:--:--</div>
+          <div class="clock-date" id="clockDate">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── ALERT BANNER ──────────────────────────────────────── -->
+  <div id="alertBanner" class="alert-banner hidden" role="alert" aria-atomic="true">
+    <div class="alert-banner-inner">
+      <span class="alert-icon" aria-hidden="true">🚨</span>
+      <span id="alertMsg">Medicine NOT taken!</span>
+      <button id="alertClose" class="alert-close" aria-label="Dismiss alert">✕</button>
+    </div>
+  </div>
+
+  <!-- ── MAIN ──────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- ── STATS STRIP ─────────────────────────────────────── -->
+    <section class="stats-strip" aria-label="Quick statistics">
+      <div class="stat-card" id="statPending">
+        <div class="stat-icon" style="--c:#f59e0b">⏳</div>
+        <div class="stat-val" id="cntPending">—</div>
+        <div class="stat-lbl">Pending</div>
+      </div>
+      <div class="stat-card" id="statDispensed">
+        <div class="stat-icon" style="--c:#06b6d4">💊</div>
+        <div class="stat-val" id="cntDispensed">—</div>
+        <div class="stat-lbl">Dispensed</div>
+      </div>
+      <div class="stat-card" id="statTaken">
+        <div class="stat-icon" style="--c:#22c55e">✅</div>
+        <div class="stat-val" id="cntTaken">—</div>
+        <div class="stat-lbl">Taken</div>
+      </div>
+      <div class="stat-card" id="statNotTaken">
+        <div class="stat-icon" style="--c:#ef4444">❌</div>
+        <div class="stat-val" id="cntNotTaken">—</div>
+        <div class="stat-lbl">Missed</div>
+      </div>
+    </section>
+
+    <!-- ── CONTENT GRID ────────────────────────────────────── -->
+    <div class="content-grid">
+
+      <!-- ── ADD SCHEDULE PANEL ───────────────────────────── -->
+      <section class="panel form-panel" aria-labelledby="formHeading">
+        <div class="panel-header">
+          <h2 id="formHeading" class="panel-title">
+            <span class="panel-title-icon" aria-hidden="true">➕</span>
+            New Schedule
+          </h2>
+        </div>
+        <form id="scheduleForm" class="schedule-form" novalidate>
+          <div class="form-group">
+            <label for="bedIdSelect">Bed ID</label>
+            <div class="input-combo">
+              <select id="bedIdSelect" name="bed_id_select" class="form-control" aria-label="Select bed">
+                <option value="">— Select or type below —</option>
+              </select>
+              <input type="text" id="bedIdCustom" name="bed_id" placeholder="or type custom e.g. BED-06"
+                     class="form-control" maxlength="20" autocomplete="off" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="medicineName">Medicine Name</label>
+            <input type="text" id="medicineName" name="medicine_name" placeholder="e.g. Paracetamol 500mg"
+                   class="form-control" required maxlength="100" autocomplete="off" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="compartment">Compartment</label>
+              <select id="compartment" name="compartment" class="form-control" required>
+                <option value="1">1 — Slot A</option>
+                <option value="2">2 — Slot B</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="doseTime">Dose Time</label>
+              <input type="time" id="doseTime" name="dose_time" class="form-control" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="startDate">Start Date</label>
+              <input type="date" id="startDate" name="start_date" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label for="durationDays">Duration (days)</label>
+              <input type="number" id="durationDays" name="duration_days" class="form-control"
+                     min="1" max="365" value="1" required />
+            </div>
+          </div>
+
+          <div id="formError" class="form-error hidden" role="alert"></div>
+
+          <button type="submit" id="submitBtn" class="btn btn-primary w-full">
+            <span class="btn-text">Schedule Medicine</span>
+            <span class="btn-spinner hidden" aria-hidden="true"></span>
+          </button>
+        </form>
+      </section>
+
+      <!-- ── DASHBOARD PANEL ──────────────────────────────── -->
+      <section class="panel dashboard-panel" aria-labelledby="dashHeading">
+        <div class="panel-header">
+          <h2 id="dashHeading" class="panel-title">
+            <span class="panel-title-icon" aria-hidden="true">📋</span>
+            Live Schedule
+          </h2>
+          <div class="dash-controls">
+            <button id="refreshBtn" class="btn btn-ghost btn-sm" aria-label="Refresh data">↻ Refresh</button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-bar" role="search" aria-label="Filter schedules">
+          <div class="filter-group">
+            <label for="filterBed" class="sr-only">Filter by Bed</label>
+            <select id="filterBed" class="filter-control" aria-label="Filter by bed">
+              <option value="">All Beds</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="filterStatus" class="sr-only">Filter by Status</label>
+            <select id="filterStatus" class="filter-control" aria-label="Filter by status">
+              <option value="">All Statuses</option>
+              <option value="PENDING">⏳ Pending</option>
+              <option value="DISPENSED">💊 Dispensed</option>
+              <option value="TAKEN">✅ Taken</option>
+              <option value="NOT_TAKEN">❌ Missed</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="filterDate" class="sr-only">Filter by Date</label>
+            <input type="date" id="filterDate" class="filter-control" aria-label="Filter by date" />
+          </div>
+          <button id="clearFilters" class="btn btn-ghost btn-sm">Clear</button>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrapper" role="region" aria-label="Schedule table" tabindex="0">
+          <table class="schedule-table" id="scheduleTable" aria-live="polite">
+            <thead>
+              <tr>
+                <th scope="col">Bed</th>
+                <th scope="col">Medicine</th>
+                <th scope="col">Comp.</th>
+                <th scope="col">Time</th>
+                <th scope="col">Start</th>
+                <th scope="col">Days</th>
+                <th scope="col">Status</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody">
+              <tr class="empty-row">
+                <td colspan="8">
+                  <div class="empty-state">
+                    <div class="empty-icon" aria-hidden="true">💊</div>
+                    <p>No schedules found.<br/>Add one using the form.</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span id="rowCount" class="row-count">0 schedules</span>
+          <span class="auto-refresh-note">Auto-refreshes every 10s</span>
+        </div>
+      </section>
+
+    </div><!-- /content-grid -->
+
+    <!-- ── LOGS PANEL ───────────────────────────────────────── -->
+    <section class="panel logs-panel" aria-labelledby="logsHeading">
+      <div class="panel-header">
+        <h2 id="logsHeading" class="panel-title">
+          <span class="panel-title-icon" aria-hidden="true">📜</span>
+          Activity Log
+        </h2>
+        <button id="logsToggle" class="btn btn-ghost btn-sm" aria-expanded="false" aria-controls="logsBody">
+          Show Logs ▼
+        </button>
+      </div>
+      <div id="logsBody" class="logs-body hidden" aria-hidden="true">
+        <div class="table-wrapper">
+          <table class="schedule-table logs-table">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Bed</th>
+                <th scope="col">Medicine</th>
+                <th scope="col">Comp.</th>
+                <th scope="col">Event</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <tr class="empty-row">
+                <td colspan="5"><div class="empty-state"><p>No logs yet.</p></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── TOAST CONTAINER ───────────────────────────────────── -->
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ── DELETE CONFIRM MODAL ──────────────────────────────── -->
+  <div id="confirmModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <h3 id="modalTitle" class="modal-title">Delete Schedule?</h3>
+      <p class="modal-body">This will permanently remove the schedule and all related logs. This cannot be undone.</p>
+      <div class="modal-actions">
+        <button id="modalCancel" class="btn btn-ghost">Cancel</button>
+        <button id="modalConfirm" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

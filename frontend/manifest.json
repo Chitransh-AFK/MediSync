@@ -1,0 +1,22 @@
+{
+  "name": "MediSync — Smart Dispenser",
+  "short_name": "MediSync",
+  "description": "Smart Medicine Dispenser Nurse Dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1e",
+  "theme_color": "#06b6d4",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%230a0f1e'/><rect x='14' y='70' width='164' height='110' rx='20' fill='url(%23g1)'/><rect x='55' y='14' width='82' height='70' rx='14' fill='url(%23g2)'/><circle cx='96' cy='125' r='20' fill='white' opacity='0.9'/><defs><linearGradient id='g1' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%2306b6d4'/><stop offset='100%25' stop-color='%233b82f6'/></linearGradient><linearGradient id='g2' x1='0' y1='0' x2='0' y2='1'><stop offset='0%25' stop-color='%238b5cf6'/><stop offset='100%25' stop-color='%2306b6d4'/></linearGradient></defs></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%230a0f1e'/><rect x='40' y='190' width='430' height='290' rx='50' fill='url(%23g1)'/><rect x='148' y='40' width='215' height='185' rx='40' fill='url(%23g2)'/><circle cx='256' cy='330' r='55' fill='white' opacity='0.9'/><defs><linearGradient id='g1' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%2306b6d4'/><stop offset='100%25' stop-color='%233b82f6'/></linearGradient><linearGradient id='g2' x1='0' y1='0' x2='0' y2='1'><stop offset='0%25' stop-color='%238b5cf6'/><stop offset='100%25' stop-color='%2306b6d4'/></linearGradient></defs></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
