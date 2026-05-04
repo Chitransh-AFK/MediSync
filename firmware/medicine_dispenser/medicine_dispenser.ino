@@ -23,9 +23,9 @@ WiFiUDP   ntpUDP;
 NTPClient ntp(ntpUDP, "pool.ntp.org", IST_OFFSET, 60000);
 
 // ── CONFIG ─────────────────────────────────────────────────────
-const char* WIFI_SSID    = "Rana Family";
-const char* WIFI_PASS    = "jc766371p";
-const char* SERVER_HOST  = "http://192.168.31.98:3000";
+const char* WIFI_SSID    = "realme NARZO 80 Pro 5G 0EB2";
+const char* WIFI_PASS    = "CHRana2007";
+const char* SERVER_HOST  = "http://10.76.171.57:3000";
 const char* BED_ID       = "BED-01";
 
 // ── TIMING ─────────────────────────────────────────────────────
@@ -41,11 +41,15 @@ const uint32_t MONITOR_SEC       = 180;    // watch for pickup for 3 min
 #define PIN_IR_PWR  15  // D8 — powers IR only when reading
 #define PIN_BUZZER  14  // D5
 
-// ── SERVO ──────────────────────────────────────────────────────
-#define SERVO_STOP        90
-#define SERVO_DIR_FORWARD 45
-#define SERVO_DIR_REVERSE 135
-#define SERVO_ROTATE_MS   800
+// ── CONTINUOUS SERVO PENDULUM CONFIG ───────────────────────────
+#define SERVO_STOP      90    // Neutral/Stop signal
+#define SPEED_CW        75    // Clockwise speed
+#define SPEED_CCW       105   // Counter-clockwise speed
+// Per-slot timing — calibrated via servo_test.ino
+#define SLOT1_FWD_MS    2000  // Slot 1: CW forward stroke duration
+#define SLOT1_RET_MS    2000  // Slot 1: CCW return stroke duration
+#define SLOT2_FWD_MS    2000  // Slot 2: CCW forward stroke duration
+#define SLOT2_RET_MS    1990  // Slot 2: CW return stroke duration (slightly shorter — CCW is faster)
 
 // ── IR ─────────────────────────────────────────────────────────
 #define IR_TRAY_OCCUPIED LOW
@@ -451,33 +455,48 @@ bool fetchScheduleFromServer() {
 // SERVO / DISPENSE
 // ═══════════════════════════════════════════════════════════════
 
-static int lastDispensedCompartment = 0;
-static int lastRotationAngle = SERVO_DIR_FORWARD;
-
 void runServo(int compartment) {
   servo.attach(PIN_SERVO);
-  servo.write(SERVO_STOP); delay(300);
-  
-  if (lastDispensedCompartment != 0) {
-    if (lastDispensedCompartment == compartment) {
-      // Same compartment consecutively -> Reverse direction
-      lastRotationAngle = (lastRotationAngle == SERVO_DIR_FORWARD) ? SERVO_DIR_REVERSE : SERVO_DIR_FORWARD;
-      Serial.printf("⚙️  Servo: Rotating OPPOSITE (Same Comp: %d)\n", compartment);
-    } else {
-      // Different compartment -> Keep same direction
-      Serial.printf("⚙️  Servo: Rotating SAME DIRECTION (Target: %d, Last: %d)\n", compartment, lastDispensedCompartment);
-    }
-  } else {
-    // First time -> Forward direction
-    Serial.printf("⚙️  Servo: Rotating FORWARD (First dispense, Target: %d)\n", compartment);
+  servo.write(SERVO_STOP);
+  delay(500); // Increased settle time before any movement
+
+  if (compartment == 1) {
+    // SLOT 1: Clockwise 160° then back
+    Serial.println("⚙️  Slot 1: CW 160 -> Return");
+
+    // Move Forward
+    servo.write(SPEED_CW);
+    delay(SLOT1_FWD_MS);
+
+    // Stop briefly before reversing — prevents overshoot/drift from motor momentum
+    servo.write(SERVO_STOP);
+    delay(1000);
+
+    // Move Backward (Return to start)
+    servo.write(SPEED_CCW);
+    delay(SLOT1_RET_MS);
   }
-  
-  servo.write(lastRotationAngle); delay(SERVO_ROTATE_MS);
-  servo.write(SERVO_STOP); delay(200);
-  servo.write(SERVO_STOP); delay(300);
+  else if (compartment == 2) {
+    // SLOT 2: Anti-clockwise 160° then back
+    Serial.println("⚙️  Slot 2: CCW 160 -> Return");
+
+    // Move Backward
+    servo.write(SPEED_CCW);
+    delay(SLOT2_FWD_MS);
+
+    // Stop briefly before reversing — prevents overshoot/drift from motor momentum
+    servo.write(SERVO_STOP);
+    delay(1000);
+
+    // Move Forward (Return to start)
+    servo.write(SPEED_CW);
+    delay(SLOT2_RET_MS);
+  }
+
+  // Stop and Detach — hold longer so motor fully registers stop before PWM cuts off
+  servo.write(SERVO_STOP);
+  delay(1000); // Matched to servo_test.ino (was 500ms)
   servo.detach();
-  
-  lastDispensedCompartment = compartment;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -587,6 +606,7 @@ void loop() {
                                         localSchedules[monQueue[i].schedIdx].compartment,
                                         "TAKEN", localSchedules[monQueue[i].schedIdx].dbId);
           monQueue[i].active = false;
+          digitalWrite(PIN_IR_PWR, LOW);
         }
       }
     } else {

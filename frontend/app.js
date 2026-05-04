@@ -35,17 +35,72 @@ function playAlarm() {
 }
 
 // ── BROWSER PUSH NOTIFICATIONS ────────────────────────────────────
-async function requestNotificationPermission() {
-  if (!('Notification' in window)) {
-    alert('Your browser does not support notifications.');
+// Smart notification permission system:
+//   - Shows a sticky banner when permission is 'default' (not yet asked)
+//   - Shows a 'how to unblock' banner when permission is 'denied'
+//   - Re-checks on every window focus (catches mobile users who allow via Settings)
+//   - 'Not now' hides the banner for the session (sessionStorage)
+
+const DISMISSED_KEY = 'notifPromptDismissed';
+
+function showNotifPromptBanner() {
+  if (!('Notification' in window)) return;            // browser doesn't support it
+  if (sessionStorage.getItem(DISMISSED_KEY)) return;  // user said 'not now' this session
+
+  const banner    = $('notifPromptBanner');
+  const title     = $('notifPromptTitle');
+  const msg       = $('notifPromptMsg');
+  const allowBtn  = $('notifPromptAllowBtn');
+  if (!banner) return;
+
+  const perm = Notification.permission;
+
+  if (perm === 'granted') {
+    // Already allowed — hide banner
+    banner.classList.add('hidden');
     return;
   }
+
+  if (perm === 'denied') {
+    // Show 'how to fix' banner in red
+    banner.classList.remove('hidden');
+    banner.classList.add('notif-denied');
+    $('notifPromptIcon') && ($('notifPromptIcon').textContent = '🚫');
+    title.textContent = 'Notifications are Blocked';
+    msg.textContent   = 'To get missed-dose alerts, go to your browser / phone Settings → Site Settings → Notifications → Allow for this site.';
+    allowBtn.textContent = '⚙️ How to Enable';
+    allowBtn.onclick = () => {
+      // Open a help article on enabling notifications on common browsers
+      window.open('https://support.google.com/chrome/answer/3220216', '_blank', 'noopener');
+    };
+    return;
+  }
+
+  // perm === 'default' — not yet asked
+  banner.classList.remove('hidden');
+  banner.classList.remove('notif-denied');
+  title.textContent    = 'Enable Missed Dose Alerts';
+  msg.textContent      = 'Get notified instantly when a patient misses their medicine, even when this tab is in the background.';
+  allowBtn.textContent = '🔔 Allow Alerts';
+  allowBtn.onclick     = requestNotificationPermission;
+}
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    toast('⚠️ Your browser does not support notifications.', 'error', 5000);
+    return;
+  }
+  // On iOS Safari, permission can only be requested from a user gesture.
+  // This is already a button click, so it's fine.
   const result = await Notification.requestPermission();
   updateNotifButton(result);
   if (result === 'granted') {
     toast('✅ Notifications enabled! You\'ll get alerts even on your home screen.', 'success', 5000);
-  } else {
-    toast('⚠️ Notification permission denied. Enable it in browser settings.', 'error', 5000);
+    $('notifPromptBanner').classList.add('hidden');
+  } else if (result === 'denied') {
+    toast('🚫 Permission denied. Enable it in your browser/phone Settings.', 'error', 6000);
+    // Re-render banner in denied (red) mode
+    showNotifPromptBanner();
   }
 }
 
@@ -582,29 +637,39 @@ async function registerServiceWorker() {
   }
 }
 
-// ── ENABLE NOTIFICATIONS BUTTON ───────────────────────────────
+// ── ENABLE NOTIFICATIONS BUTTON (header pill) ────────────────
 const notifEnableBtn = $('notifEnableBtn');
 if (notifEnableBtn) {
   notifEnableBtn.addEventListener('click', requestNotificationPermission);
 }
+
+// ── NOTIFICATION PROMPT BANNER DISMISS BUTTON ─────────────────
+const notifPromptDismissBtn = $('notifPromptDismissBtn');
+if (notifPromptDismissBtn) {
+  notifPromptDismissBtn.addEventListener('click', () => {
+    sessionStorage.setItem(DISMISSED_KEY, '1');
+    $('notifPromptBanner').classList.add('hidden');
+  });
+}
+
+// Re-check permission when user returns to this tab (e.g. from browser Settings on mobile)
+window.addEventListener('focus', () => {
+  if ('Notification' in window) {
+    updateNotifButton(Notification.permission);
+    showNotifPromptBanner();
+  }
+});
 
 // ── INIT ──────────────────────────────────────────────────────
 (async function init() {
   // Register service worker (enables background notifications)
   await registerServiceWorker();
 
-  // Show current notification permission state on button
+  // Show current notification permission state on header pill button
   if ('Notification' in window) {
     updateNotifButton(Notification.permission);
-    
-    // 🆕 AUTO-REQUEST permission on first visit (if not already asked)
-    if (Notification.permission === 'default') {
-      // Permission hasn't been asked yet
-      setTimeout(async () => {
-        toast('📲 Enable missed dose alerts? You\'ll get notifications even when not on this page.', 'info', 10000);
-        await requestNotificationPermission();
-      }, 1500); // Delay 1.5s after page loads so user sees page content first
-    }
+    // Show smart banner (default = ask, denied = how-to-fix, granted = hidden)
+    setTimeout(showNotifPromptBanner, 800);
   }
 
   await loadBeds();

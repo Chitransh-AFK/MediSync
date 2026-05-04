@@ -83,6 +83,19 @@
     </div>
   </header>
 
+  <!-- ── NOTIFICATION PERMISSION PROMPT BANNER ────────────── -->
+  <div id="notifPromptBanner" class="notif-prompt-banner hidden" role="status" aria-live="polite">
+    <span class="notif-prompt-icon" aria-hidden="true">🔔</span>
+    <div class="notif-prompt-text">
+      <strong id="notifPromptTitle">Enable Missed Dose Alerts</strong> —
+      <span id="notifPromptMsg">Get notified instantly when a patient misses their medicine, even when this tab is in the background.</span>
+    </div>
+    <div class="notif-prompt-actions">
+      <button id="notifPromptAllowBtn" class="btn-notif-allow" aria-label="Allow notifications">🔔 Allow Alerts</button>
+      <button id="notifPromptDismissBtn" class="btn-notif-dismiss" aria-label="Dismiss this prompt">Not now</button>
+    </div>
+  </div>
+
   <!-- ── ALERT BANNER ──────────────────────────────────────── -->
   <div id="alertBanner" class="alert-banner hidden" role="alert" aria-atomic="true">
     <div class="alert-banner-inner">
